@@ -1,13 +1,20 @@
-import { Link } from 'react-router-dom'
+import { Link, NavLink } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
+
+const tabClass = ({ isActive }) =>
+  `px-3.5 py-1.5 rounded-lg text-sm font-semibold transition-all ${
+    isActive
+      ? 'bg-indigo-50 text-indigo-700 ring-1 ring-indigo-200'
+      : 'text-slate-600 hover:text-indigo-600 hover:bg-slate-50'
+  }`
 
 function Navbar() {
   const { user, signOut } = useAuth()
 
   return (
     <nav className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-slate-200/60 shadow-sm">
-      <div className="px-6 py-3 flex items-center justify-between">
-        <Link to="/" className="flex items-center gap-2.5 group">
+      <div className="px-6 py-3 flex items-center justify-between gap-4">
+        <Link to="/" className="flex items-center gap-2.5 group shrink-0">
           <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 via-violet-500 to-fuchsia-500 flex items-center justify-center shadow-md shadow-indigo-500/25 group-hover:shadow-lg group-hover:shadow-indigo-500/30 transition-all">
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -34,7 +41,17 @@ function Navbar() {
           </div>
         </Link>
         {user && (
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1 mr-auto">
+            <NavLink to="/" end className={tabClass}>
+              Submissions
+            </NavLink>
+            <NavLink to="/users" className={tabClass}>
+              Users
+            </NavLink>
+          </div>
+        )}
+        {user && (
+          <div className="flex items-center gap-3 shrink-0">
             {user.picture && (
               <img
                 src={user.picture}

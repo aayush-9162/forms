@@ -5,12 +5,17 @@ import { getStoredCredential, clearCredential } from './lib/google.js'
 // under /report, leave it unset so requests follow the serving origin.
 const API_BASE = import.meta.env.VITE_API_URL?.replace(/\/$/, '') || ''
 
-async function request(path) {
+async function request(path, { method = 'GET', body } = {}) {
   // The Google ID token is attached as a bearer. getStoredCredential() returns
   // null once it's expired (Google tokens can't be silently refreshed).
   const credential = getStoredCredential()
   const headers = credential ? { Authorization: `Bearer ${credential}` } : {}
-  const res = await fetch(`${API_BASE}${path}`, { headers })
+  if (body !== undefined) headers['Content-Type'] = 'application/json'
+  const res = await fetch(`${API_BASE}${path}`, {
+    method,
+    headers,
+    body: body !== undefined ? JSON.stringify(body) : undefined,
+  })
   if (res.status === 401) {
     // Token missing/expired/invalid — clear it and reload so the app shows the
     // sign-in screen instead of getting stuck.
@@ -42,4 +47,13 @@ export function fetchSubmissions(formKey, { limit = 200, offset = 0 } = {}) {
 
 export function fetchSubmission(formKey, id) {
   return request(`/api/reports/${formKey}/${id}`)
+}
+
+// --- App-managed user directory (Users tab) ---
+export function fetchUsers() {
+  return request('/api/users')
+}
+
+export function saveUsers(users) {
+  return request('/api/users', { method: 'PUT', body: { users } })
 }

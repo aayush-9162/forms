@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url'
 import 'dotenv/config'
 import submissionsRouter from './routes/submissions.js'
 import reportsRouter from './routes/reports.js'
+import usersRouter from './routes/users.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 // Built SPAs served by this same server (single-origin deploy). The forms app
@@ -86,6 +87,7 @@ app.use(
   rateLimit({ windowMs: 60_000, max: 120, key: 'reports' }),
   reportsRouter
 )
+app.use('/api/users', usersRouter)
 
 // Any unmatched /api path returns JSON, never the SPA's index.html.
 app.use('/api', (_req, res) => res.status(404).json({ error: 'Not found' }))
@@ -93,8 +95,9 @@ app.use('/api', (_req, res) => res.status(404).json({ error: 'Not found' }))
 // ---- Static web apps (production single-server deploy) ------------------
 // Report dashboard under /report (its build is based at /report/). Assets are
 // served by express.static; every other /report* path returns its index.html
-// for client-side routing.
-app.use('/report', express.static(REPORT_DIST))
+// for client-side routing. redirect:false so bare /report serves directly
+// instead of 301-ing to /report/.
+app.use('/report', express.static(REPORT_DIST, { redirect: false }))
 app.get(/^\/report(\/.*)?$/, (_req, res) =>
   res.sendFile(path.join(REPORT_DIST, 'index.html'))
 )

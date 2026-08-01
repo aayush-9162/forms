@@ -4,3 +4,4 @@ uploads/*
 !uploads/.gitkeep
 .drive-token.json
 client_secret*.json
+data/
