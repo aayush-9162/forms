@@ -1,0 +1,6 @@
+node_modules
+.env
+uploads/*
+!uploads/.gitkeep
+.drive-token.json
+client_secret*.json

@@ -1,0 +1,97 @@
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react'
+import {
+  initGoogleAuth,
+  renderSignInButton,
+  promptOneTap,
+  disableAutoSelect,
+  getStoredCredential,
+  storeCredential,
+  clearCredential,
+  decodeCredential,
+} from '../lib/google.js'
+
+const AuthContext = createContext(null)
+
+function buildUser(credential) {
+  if (!credential) return null
+  const p = decodeCredential(credential)
+  if (!p) return null
+  return {
+    email: p.email || '',
+    name: p.name || p.email || '',
+    picture: p.picture || null,
+    sub: p.sub || null,
+    credential,
+    exp: p.exp || 0,
+  }
+}
+
+export function AuthProvider({ children }) {
+  const [credential, setCredential] = useState(() => getStoredCredential())
+  const [authReady, setAuthReady] = useState(false)
+
+  const user = useMemo(() => buildUser(credential), [credential])
+
+  const acceptCredential = useCallback((token) => {
+    storeCredential(token)
+    setCredential(token)
+  }, [])
+
+  useEffect(() => {
+    let cancelled = false
+    initGoogleAuth((token) => {
+      if (!cancelled) acceptCredential(token)
+    })
+      .then(() => !cancelled && setAuthReady(true))
+      .catch((err) => {
+        console.error('[google] init failed', err)
+        if (!cancelled) setAuthReady(true)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [acceptCredential])
+
+  // Google ID tokens can't be silently refreshed, so when this one expires we
+  // drop the user and the app falls back to the login screen.
+  useEffect(() => {
+    if (!user?.exp) return
+    const ms = user.exp * 1000 - Date.now()
+    if (ms <= 0) {
+      clearCredential()
+      setCredential(null)
+      return
+    }
+    const t = setTimeout(() => {
+      clearCredential()
+      setCredential(null)
+    }, ms)
+    return () => clearTimeout(t)
+  }, [user?.exp])
+
+  const signOut = useCallback(() => {
+    clearCredential()
+    disableAutoSelect()
+    setCredential(null)
+  }, [])
+
+  const value = useMemo(
+    () => ({ user, authReady, renderSignInButton, promptOneTap, signOut }),
+    [user, authReady, signOut]
+  )
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
+}
+
+export function useAuth() {
+  const ctx = useContext(AuthContext)
+  if (!ctx) throw new Error('useAuth must be used within AuthProvider')
+  return ctx
+}

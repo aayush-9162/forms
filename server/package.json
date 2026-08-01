@@ -1,0 +1,26 @@
+{
+  "name": "forms-portal-server",
+  "version": "1.0.0",
+  "description": "Express backend for Forms Portal",
+  "type": "module",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js",
+    "db:init": "node src/dbInit.js",
+    "drive:setup": "node src/driveSetup.js",
+    "drive:diagnose": "node src/driveDiagnose.js",
+    "build:web": "npm --prefix ../frontend install --no-fund --no-audit && npm --prefix ../frontend run build && npm --prefix ../formreport install --no-fund --no-audit && npm --prefix ../formreport run build"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.2",
+    "google-auth-library": "^9.15.0",
+    "googleapis": "^171.4.0",
+    "jose": "^6.2.3",
+    "multer": "^1.4.5-lts.1",
+    "mysql2": "^3.11.4",
+    "pdfkit": "^0.18.0"
+  }
+}
