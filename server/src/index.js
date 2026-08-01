@@ -11,7 +11,7 @@ import usersRouter from './routes/users.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 // Built SPAs served by this same server (single-origin deploy). The forms app
-// lives at /, the report dashboard at /report.
+// lives at /, the report dashboard at /formreport.
 const FRONTEND_DIST = path.resolve(__dirname, '../../frontend/dist')
 const REPORT_DIST = path.resolve(__dirname, '../../formreport/dist')
 
@@ -93,12 +93,16 @@ app.use('/api/users', usersRouter)
 app.use('/api', (_req, res) => res.status(404).json({ error: 'Not found' }))
 
 // ---- Static web apps (production single-server deploy) ------------------
-// Report dashboard under /report (its build is based at /report/). Assets are
-// served by express.static; every other /report* path returns its index.html
-// for client-side routing. redirect:false so bare /report serves directly
-// instead of 301-ing to /report/.
-app.use('/report', express.static(REPORT_DIST, { redirect: false }))
-app.get(/^\/report(\/.*)?$/, (_req, res) =>
+// Report dashboard under /formreport (its build is based at /formreport/).
+// Assets are served by express.static; every other /formreport* path returns
+// its index.html for client-side routing. redirect:false so bare /formreport
+// serves directly instead of 301-ing to /formreport/.
+// Legacy alias: /report → /formreport.
+app.get(/^\/report(\/.*)?$/, (req, res) =>
+  res.redirect(301, req.originalUrl.replace(/^\/report/, '/formreport'))
+)
+app.use('/formreport', express.static(REPORT_DIST, { redirect: false }))
+app.get(/^\/formreport(\/.*)?$/, (_req, res) =>
   res.sendFile(path.join(REPORT_DIST, 'index.html'))
 )
 

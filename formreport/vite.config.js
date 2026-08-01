@@ -2,11 +2,11 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 
-// The production build is served by Express under /report (single-server
+// The production build is served by Express under /formreport (single-server
 // deploy), so assets and the router live under that base. Dev (`vite serve`)
 // stays at the root so localhost:7802 works unchanged.
 export default defineConfig(({ command }) => ({
-  base: command === 'build' ? '/report/' : '/',
+  base: command === 'build' ? '/formreport/' : '/',
   plugins: [react(), tailwindcss()],
   server: {
     // Bind to all interfaces so other devices on the LAN can connect.
