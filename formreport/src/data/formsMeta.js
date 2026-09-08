@@ -1,7 +1,7 @@
 // Display metadata for every form the backend knows about.
 // `columns` is the compact table view; `detail` is the drawer order.
 
-const COMMON_META_COLUMNS = [
+export const COMMON_META_COLUMNS = [
   { key: 'id', label: '#', type: 'int' },
   { key: 'created_at', label: 'Submitted', type: 'datetime' },
   { key: 'submitted_by_name', label: 'By', type: 'text' },
