@@ -2,13 +2,11 @@ import { useEffect, useMemo, useState } from 'react'
 import {
   CATEGORIES,
   FORMS_META,
-  COMMON_META_COLUMNS,
   getFormsByCategory,
 } from '../data/formsMeta.js'
 import { fetchSummary, fetchSubmissions } from '../api.js'
 import Sidebar from '../components/Sidebar.jsx'
-import SubmissionCard from '../components/SubmissionCard.jsx'
-import DetailDrawer from '../components/DetailDrawer.jsx'
+import SubmissionDetail from '../components/SubmissionDetail.jsx'
 
 // ---- date helpers (all local-time, YYYY-MM-DD) ----
 const pad = (n) => String(n).padStart(2, '0')
@@ -47,8 +45,6 @@ function prettyDate(ymd) {
   })
 }
 
-const META_KEYS = new Set(COMMON_META_COLUMNS.map((c) => c.key))
-
 function firstFormKey() {
   const grouped = getFormsByCategory()
   for (const cat of CATEGORIES) {
@@ -71,19 +67,11 @@ function Reports() {
   const [error, setError] = useState('')
   const [selectedDate, setSelectedDate] = useState(yesterdayYMD)
   const [search, setSearch] = useState('')
-  const [detailRow, setDetailRow] = useState(null)
   const [lastUpdated, setLastUpdated] = useState(null)
 
   const form = selectedFormKey ? FORMS_META[selectedFormKey] : null
   const category = findCategory(selectedFormKey)
   const dateField = useMemo(() => dateFieldFor(form), [form])
-
-  // Columns shown on each card = the compact columns minus the meta ones
-  // (submitter/email/id/created_at are rendered in the card header/footer).
-  const bodyColumns = useMemo(
-    () => (form?.columns || []).filter((c) => !META_KEYS.has(c.key)),
-    [form]
-  )
 
   const refreshSummary = async () => {
     try {
@@ -294,15 +282,13 @@ function Reports() {
                   onPick={setSelectedDate}
                 />
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                <div className="space-y-6 max-w-4xl">
                   {dayRows.map((row) => (
-                    <SubmissionCard
+                    <SubmissionDetail
                       key={row.id}
                       form={form}
                       row={row}
-                      bodyColumns={bodyColumns}
                       gradient={category.gradient}
-                      onClick={setDetailRow}
                     />
                   ))}
                 </div>
@@ -311,15 +297,6 @@ function Reports() {
           </>
         )}
       </main>
-
-      {detailRow && form && (
-        <DetailDrawer
-          form={form}
-          row={detailRow}
-          categoryGradient={category.gradient}
-          onClose={() => setDetailRow(null)}
-        />
-      )}
     </div>
   )
 }
