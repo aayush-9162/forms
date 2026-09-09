@@ -2,10 +2,11 @@ import { CATEGORIES, getFormsByCategory } from '../data/formsMeta.js'
 
 function Sidebar({ selectedFormKey, onSelect, counts }) {
   const grouped = getFormsByCategory()
-  const totalCount = Object.values(counts || {}).reduce(
-    (s, c) => s + (c?.count || 0),
-    0
-  )
+  // Count only the forms actually shown in the sidebar (excludes any form
+  // omitted from FORMS_META, e.g. To Do List / Hot Button).
+  const totalCount = Object.values(grouped)
+    .flat()
+    .reduce((s, f) => s + (counts?.[f.key]?.count || 0), 0)
 
   return (
     <aside className="w-72 shrink-0 border-r border-slate-200/60 bg-white/40 backdrop-blur-sm overflow-y-auto">

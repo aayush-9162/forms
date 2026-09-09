@@ -327,44 +327,9 @@ export const FORMS_META = {
       { key: 'warehouse_manager', label: 'Warehouse Manager', type: 'text' },
     ],
   },
-  'to-do-list': {
-    title: 'To Do List',
-    category: 'General',
-    columns: [
-      ...COMMON_META_COLUMNS,
-      { key: 'your_name', label: 'Name', type: 'text' },
-      { key: 'task', label: 'Task', type: 'text' },
-      { key: 'ext_no', label: 'EXT', type: 'text' },
-    ],
-    fields: [
-      { key: 'your_name', label: 'Your Name', type: 'text' },
-      { key: 'task', label: 'Task', type: 'textarea' },
-      { key: 'ext_no', label: 'EXT No', type: 'text' },
-      { key: 'attachment', label: 'Attachment', type: 'file' },
-      { key: 'remarks', label: 'Remarks', type: 'textarea' },
-    ],
-  },
-  'hot-button-status-call-alert': {
-    title: 'Hot Button / Status Call Alert',
-    category: 'General',
-    columns: [
-      ...COMMON_META_COLUMNS,
-      { key: 'sales_person_name', label: 'Sales', type: 'text' },
-      { key: 'store', label: 'Store', type: 'text' },
-      { key: 'customer_name', label: 'Customer', type: 'text' },
-      { key: 'sale_number', label: 'Sale #', type: 'text' },
-    ],
-    fields: [
-      { key: 'sales_person_name', label: 'Sales Person Name', type: 'text' },
-      { key: 'concern_type', label: 'Concern Type', type: 'text' },
-      { key: 'store', label: 'Store', type: 'text' },
-      { key: 'customer_name', label: 'Customer Name', type: 'text' },
-      { key: 'sale_number', label: 'Sale Number', type: 'text' },
-      { key: 'sale_date', label: 'Sale Date', type: 'date' },
-      { key: 'description', label: 'Description', type: 'textarea' },
-      { key: 'steps_taken', label: 'Steps Taken', type: 'textarea' },
-    ],
-  },
+  // 'to-do-list' and 'hot-button-status-call-alert' are intentionally omitted
+  // from the report dashboard (hidden from the sidebar). They are still
+  // submittable in the forms app and stored in the DB.
   'customer-service-request': {
     title: 'Customer Service Request',
     category: 'General',
