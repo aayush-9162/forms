@@ -146,92 +146,37 @@ function Reports() {
       <main className="flex-1 overflow-y-auto">
         {form && (
           <>
-            {/* Sticky header: title + date navigator */}
-            <div className="sticky top-0 z-10 bg-slate-50/85 backdrop-blur-md border-b border-slate-200/70 px-6 pt-5 pb-4">
-              <div className="flex items-center gap-2 mb-1.5">
-                <span
-                  className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full ${category.bg} ${category.accent} text-xs font-bold uppercase tracking-wider`}
-                >
+            {/* Compact header (scrolls with the content — not sticky) */}
+            <div className="border-b border-slate-200/70 px-6 pt-4 pb-3">
+              {/* row 1: category + title | search + refresh */}
+              <div className="flex items-center justify-between gap-3 flex-wrap mb-3">
+                <div className="flex items-center gap-2.5 min-w-0">
                   <span
-                    className={`w-1.5 h-1.5 rounded-full bg-gradient-to-r ${category.gradient}`}
-                  />
-                  {category.label}
-                </span>
-                {lastUpdated && (
-                  <span className="text-xs text-slate-400">
-                    updated {lastUpdated.toLocaleTimeString()}
+                    className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full ${category.bg} ${category.accent} text-[10px] font-bold uppercase tracking-wider shrink-0`}
+                  >
+                    <span
+                      className={`w-1.5 h-1.5 rounded-full bg-gradient-to-r ${category.gradient}`}
+                    />
+                    {category.label}
                   </span>
-                )}
-              </div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight mb-4">
-                {form.title}
-              </h1>
-
-              <div className="flex items-center gap-3 flex-wrap">
-                {/* prev / date / next */}
-                <div className="flex items-center bg-white border border-slate-300 rounded-xl overflow-hidden shadow-sm">
-                  <button
-                    onClick={() => setSelectedDate((d) => shiftYMD(d, -1))}
-                    className="px-3 py-2 text-slate-500 hover:bg-slate-50 hover:text-indigo-600 transition-colors"
-                    aria-label="Previous day"
-                  >
-                    ‹
-                  </button>
-                  <input
-                    type="date"
-                    value={selectedDate}
-                    max={todayYMD()}
-                    onChange={(e) => setSelectedDate(e.target.value || yesterdayYMD())}
-                    className="px-2 py-2 text-sm font-semibold text-slate-800 focus:outline-none"
-                  />
-                  <button
-                    onClick={() => setSelectedDate((d) => shiftYMD(d, 1))}
-                    disabled={isToday}
-                    className="px-3 py-2 text-slate-500 hover:bg-slate-50 hover:text-indigo-600 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                    aria-label="Next day"
-                  >
-                    ›
-                  </button>
+                  <h1 className="text-xl font-bold text-slate-900 tracking-tight truncate">
+                    {form.title}
+                  </h1>
                 </div>
-
-                {/* quick chips */}
-                <div className="flex items-center gap-1.5">
-                  <button
-                    onClick={() => setSelectedDate(yesterdayYMD())}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
-                      isYesterday
-                        ? 'bg-indigo-600 text-white'
-                        : 'bg-white border border-slate-300 text-slate-600 hover:border-indigo-300 hover:text-indigo-600'
-                    }`}
-                  >
-                    Yesterday
-                  </button>
-                  <button
-                    onClick={() => setSelectedDate(todayYMD())}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
-                      isToday
-                        ? 'bg-indigo-600 text-white'
-                        : 'bg-white border border-slate-300 text-slate-600 hover:border-indigo-300 hover:text-indigo-600'
-                    }`}
-                  >
-                    Today
-                  </button>
-                </div>
-
-                <div className="ml-auto flex items-center gap-2">
+                <div className="flex items-center gap-2 shrink-0">
                   <input
                     type="search"
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                     placeholder="Search this day…"
-                    className="px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm w-48 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
+                    className="px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-sm w-44 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
                   />
                   <button
                     onClick={() => {
                       refreshSummary()
                       loadRows(selectedFormKey)
                     }}
-                    className="p-2 bg-white border border-slate-300 rounded-lg text-slate-600 hover:border-indigo-300 hover:text-indigo-600 transition-all"
+                    className="p-1.5 bg-white border border-slate-300 rounded-lg text-slate-600 hover:border-indigo-300 hover:text-indigo-600 transition-all"
                     aria-label="Refresh"
                   >
                     <svg
@@ -251,14 +196,68 @@ function Reports() {
                 </div>
               </div>
 
-              <div className="mt-3 flex items-baseline gap-2">
-                <span className="text-lg font-bold text-slate-900">
-                  {prettyDate(selectedDate)}
-                </span>
-                <span className="text-sm text-slate-500">
-                  · {dayRows.length}{' '}
-                  {dayRows.length === 1 ? 'submission' : 'submissions'}
-                </span>
+              {/* row 2: date navigator + chips | selected date · count */}
+              <div className="flex items-center gap-2.5 flex-wrap">
+                <div className="flex items-center bg-white border border-slate-300 rounded-lg overflow-hidden shadow-sm">
+                  <button
+                    onClick={() => setSelectedDate((d) => shiftYMD(d, -1))}
+                    className="px-2.5 py-1.5 text-slate-500 hover:bg-slate-50 hover:text-indigo-600 transition-colors"
+                    aria-label="Previous day"
+                  >
+                    ‹
+                  </button>
+                  <input
+                    type="date"
+                    value={selectedDate}
+                    max={todayYMD()}
+                    onChange={(e) => setSelectedDate(e.target.value || yesterdayYMD())}
+                    className="px-2 py-1.5 text-sm font-semibold text-slate-800 focus:outline-none"
+                  />
+                  <button
+                    onClick={() => setSelectedDate((d) => shiftYMD(d, 1))}
+                    disabled={isToday}
+                    className="px-2.5 py-1.5 text-slate-500 hover:bg-slate-50 hover:text-indigo-600 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                    aria-label="Next day"
+                  >
+                    ›
+                  </button>
+                </div>
+
+                <button
+                  onClick={() => setSelectedDate(yesterdayYMD())}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+                    isYesterday
+                      ? 'bg-indigo-600 text-white'
+                      : 'bg-white border border-slate-300 text-slate-600 hover:border-indigo-300 hover:text-indigo-600'
+                  }`}
+                >
+                  Yesterday
+                </button>
+                <button
+                  onClick={() => setSelectedDate(todayYMD())}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+                    isToday
+                      ? 'bg-indigo-600 text-white'
+                      : 'bg-white border border-slate-300 text-slate-600 hover:border-indigo-300 hover:text-indigo-600'
+                  }`}
+                >
+                  Today
+                </button>
+
+                <div className="ml-auto flex items-baseline gap-2 text-sm">
+                  <span className="font-semibold text-slate-800">
+                    {prettyDate(selectedDate)}
+                  </span>
+                  <span className="text-slate-400">
+                    · {dayRows.length}{' '}
+                    {dayRows.length === 1 ? 'submission' : 'submissions'}
+                  </span>
+                  {lastUpdated && (
+                    <span className="text-xs text-slate-300 hidden lg:inline">
+                      · updated {lastUpdated.toLocaleTimeString()}
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
 
