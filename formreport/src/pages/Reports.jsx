@@ -282,7 +282,7 @@ function Reports() {
                   onPick={setSelectedDate}
                 />
               ) : (
-                <div className="space-y-6 max-w-4xl">
+                <div className="space-y-6">
                   {dayRows.map((row) => (
                     <SubmissionDetail
                       key={row.id}

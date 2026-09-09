@@ -5,19 +5,57 @@ import {
   parseJson,
 } from './formatters.js'
 
-// Full, expanded detail of one submission — rendered inline in the day view
-// (no click, no drawer). Shows every field of the form for this row.
+// Full, form-aware detail of one submission — rendered inline in the day view.
+// Groups fields the way the forms actually work: a Summary grid of short
+// answers (Yes/No questions get colour-coded badges, with their follow-up
+// "describe/explain" answer nested underneath), then checklist grids,
+// attachments, and free-text notes as full-width sections.
 
-function answerBadgeClass(answer) {
-  const a = String(answer || '').toLowerCase()
-  if (a.startsWith('yes')) return 'bg-emerald-100 text-emerald-700'
-  if (a === 'no') return 'bg-rose-100 text-rose-700'
-  if (a === 'na') return 'bg-slate-100 text-slate-600'
-  if (a.includes('see comment')) return 'bg-amber-100 text-amber-700'
-  return 'bg-indigo-100 text-indigo-700'
+const WIDE_TYPES = new Set(['grid', 'array', 'file', 'files', 'textarea'])
+
+function isEmpty(v) {
+  return (
+    v === null ||
+    v === undefined ||
+    v === '' ||
+    (Array.isArray(v) && v.length === 0)
+  )
 }
 
+function Dash() {
+  return <span className="text-slate-300 text-sm">—</span>
+}
+
+// Does this scalar value read like a yes/no/na answer?
+function looksLikeAnswer(v) {
+  const a = String(v).trim().toLowerCase()
+  return (
+    ['yes', 'no', 'na', 'n/a'].includes(a) ||
+    a.startsWith('yes') ||
+    a.startsWith('no ') ||
+    a.includes('see comment')
+  )
+}
+
+function AnswerBadge({ value }) {
+  const a = String(value).trim().toLowerCase()
+  let cls = 'bg-indigo-100 text-indigo-700'
+  if (a.startsWith('yes')) cls = 'bg-emerald-100 text-emerald-700'
+  else if (a === 'no' || a.startsWith('no ')) cls = 'bg-rose-100 text-rose-700'
+  else if (a === 'na' || a === 'n/a') cls = 'bg-slate-100 text-slate-500'
+  else if (a.includes('see comment')) cls = 'bg-amber-100 text-amber-700'
+  return (
+    <span
+      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold ${cls}`}
+    >
+      {String(value)}
+    </span>
+  )
+}
+
+// Short scalar value: badges for yes/no answers, otherwise typed formatting.
 function ScalarValue({ value, type }) {
+  if (isEmpty(value)) return <Dash />
   switch (type) {
     case 'money':
       return <span className="font-semibold text-slate-900">{formatMoney(value)}</span>
@@ -32,56 +70,43 @@ function ScalarValue({ value, type }) {
     case 'time':
       return <span className="text-slate-900">{String(value)}</span>
     case 'bool':
-      return value === 1 || value === true || value === '1' ? (
-        <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-xs font-semibold">
-          Yes
-        </span>
-      ) : (
-        <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 text-xs font-semibold">
-          No
-        </span>
-      )
-    case 'textarea':
       return (
-        <div className="whitespace-pre-wrap text-slate-700 leading-relaxed text-sm">
-          {value}
-        </div>
+        <AnswerBadge value={value === 1 || value === true || value === '1' ? 'Yes' : 'No'} />
       )
     default:
-      return <span className="text-slate-900 break-words">{String(value)}</span>
+      return looksLikeAnswer(value) ? (
+        <AnswerBadge value={value} />
+      ) : (
+        <span className="text-slate-900 break-words">{String(value)}</span>
+      )
   }
 }
 
-function GridValue({ value }) {
+// Checklist grid → responsive item/answer cells (wraps into columns so long
+// checklists don't run down the whole page).
+function Checklist({ value }) {
   const parsed = parseJson(value)
-  if (!parsed || typeof parsed !== 'object') return <Dash />
-  const entries = Object.entries(parsed)
+  const entries =
+    parsed && typeof parsed === 'object' && !Array.isArray(parsed)
+      ? Object.entries(parsed)
+      : []
   if (!entries.length) return <Dash />
   return (
-    <div className="rounded-xl border border-slate-200 overflow-hidden bg-white">
-      <table className="w-full text-sm">
-        <tbody className="divide-y divide-slate-100">
-          {entries.map(([label, answer]) => (
-            <tr key={label} className="hover:bg-slate-50">
-              <td className="px-3 py-2 text-slate-700">{label}</td>
-              <td className="px-3 py-2 text-right">
-                <span
-                  className={`inline-block px-2 py-0.5 rounded-full text-xs font-bold ${answerBadgeClass(
-                    answer
-                  )}`}
-                >
-                  {String(answer)}
-                </span>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2">
+      {entries.map(([item, answer]) => (
+        <div
+          key={item}
+          className="flex items-center justify-between gap-3 px-3 py-2 rounded-lg border border-slate-200 bg-white"
+        >
+          <span className="text-sm text-slate-700 min-w-0 break-words">{item}</span>
+          <AnswerBadge value={answer} />
+        </div>
+      ))}
     </div>
   )
 }
 
-function ArrayValue({ value }) {
+function Chips({ value }) {
   const parsed = parseJson(value)
   const arr = Array.isArray(parsed) ? parsed : null
   if (!arr || !arr.length) return <Dash />
@@ -90,7 +115,7 @@ function ArrayValue({ value }) {
       {arr.map((item, i) => (
         <span
           key={i}
-          className="px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 text-xs font-semibold"
+          className="px-2.5 py-1 rounded-md bg-indigo-50 text-indigo-700 text-sm font-medium"
         >
           {String(item)}
         </span>
@@ -99,20 +124,20 @@ function ArrayValue({ value }) {
   )
 }
 
-function FileValue({ value, multiple }) {
+function FileLinks({ value, multiple }) {
   const parsed = parseJson(value)
   if (!parsed) return <Dash />
   const list = multiple ? (Array.isArray(parsed) ? parsed : [parsed]) : [parsed]
   if (!list.length) return <Dash />
   return (
-    <div className="space-y-2">
+    <div className="flex flex-wrap gap-2">
       {list.map((file, i) => (
         <a
           key={i}
           href={file.drive_view_link || '#'}
           target="_blank"
           rel="noreferrer"
-          className="flex items-center gap-3 px-3 py-2 rounded-lg border border-slate-200 hover:border-indigo-300 hover:bg-indigo-50/40 transition-all group max-w-md"
+          className="flex items-center gap-3 px-3 py-2 rounded-lg border border-slate-200 hover:border-indigo-300 hover:bg-indigo-50/40 transition-all group w-72 max-w-full"
         >
           <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center text-white shrink-0">
             <svg
@@ -144,35 +169,12 @@ function FileValue({ value, multiple }) {
   )
 }
 
-function Dash() {
-  return <span className="text-slate-400 italic text-sm">—</span>
-}
-
-const WIDE_TYPES = new Set(['grid', 'array', 'file', 'files', 'textarea'])
-
-function isEmpty(v) {
+function SectionLabel({ children }) {
   return (
-    v === null ||
-    v === undefined ||
-    v === '' ||
-    (Array.isArray(v) && v.length === 0)
+    <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-2">
+      {children}
+    </div>
   )
-}
-
-function renderValue(field, v) {
-  if (isEmpty(v)) return <Dash />
-  switch (field.type) {
-    case 'grid':
-      return <GridValue value={v} />
-    case 'array':
-      return <ArrayValue value={v} />
-    case 'files':
-      return <FileValue value={v} multiple />
-    case 'file':
-      return <FileValue value={v} multiple={false} />
-    default:
-      return <ScalarValue value={v} type={field.type} />
-  }
 }
 
 function SubmissionDetail({ form, row, gradient }) {
@@ -182,14 +184,40 @@ function SubmissionDetail({ form, row, gradient }) {
     .toUpperCase()
 
   const fields = form.fields || []
-  const compact = fields.filter((f) => !WIDE_TYPES.has(f.type))
-  const wide = fields.filter((f) => WIDE_TYPES.has(f.type))
+
+  // Pair a follow-up "describe/explain" textarea with the question above it
+  // (its key starts with the question's key), so they read as one thing.
+  const items = []
+  for (let i = 0; i < fields.length; i++) {
+    const f = fields[i]
+    const next = fields[i + 1]
+    const scalarQuestion = !WIDE_TYPES.has(f.type)
+    if (
+      scalarQuestion &&
+      next &&
+      next.type === 'textarea' &&
+      next.key.startsWith(f.key)
+    ) {
+      items.push({ field: f, follow: next })
+      i++
+    } else {
+      items.push({ field: f })
+    }
+  }
+
+  const summary = items.filter((it) => !WIDE_TYPES.has(it.field.type))
+  const grids = items.filter((it) => it.field.type === 'grid')
+  const arrays = items.filter((it) => it.field.type === 'array')
+  const files = items.filter(
+    (it) => it.field.type === 'file' || it.field.type === 'files'
+  )
+  const notes = items.filter((it) => it.field.type === 'textarea')
 
   return (
     <div className="bg-white rounded-2xl border border-slate-200/70 shadow-sm overflow-hidden">
       {/* header */}
       <div
-        className={`bg-gradient-to-r ${gradient} px-5 py-4 text-white flex items-center gap-3`}
+        className={`bg-gradient-to-r ${gradient} px-6 py-4 text-white flex items-center gap-3`}
       >
         <div className="w-11 h-11 rounded-xl bg-white/20 ring-1 ring-white/30 flex items-center justify-center font-bold text-lg shrink-0">
           {initial}
@@ -201,40 +229,87 @@ function SubmissionDetail({ form, row, gradient }) {
           <div className="text-white/85 text-xs truncate">{row.email}</div>
         </div>
         <div className="text-right shrink-0">
-          <div className="text-white/85 text-[11px] font-bold">#{row.id}</div>
-          <div className="text-white/70 text-[11px]">
+          <div className="text-white/85 text-xs font-bold">#{row.id}</div>
+          <div className="text-white/70 text-xs">
             {formatDateTime(row.created_at)}
           </div>
         </div>
       </div>
 
-      {/* body */}
-      <div className="p-5 sm:p-6">
-        {compact.length > 0 && (
-          <dl className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-4 mb-6">
-            {compact.map((f) => (
-              <div key={f.key} className="min-w-0">
-                <dt className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
-                  {f.label}
-                </dt>
-                <dd className="text-sm">{renderValue(f, row[f.key])}</dd>
-              </div>
-            ))}
+      <div className="p-6 space-y-7">
+        {/* Summary: short answers, Yes/No badges, nested follow-ups */}
+        {summary.length > 0 && (
+          <dl className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-x-6 gap-y-5">
+            {summary.map(({ field, follow }) => {
+              const followVal = follow ? row[follow.key] : null
+              return (
+                <div key={field.key} className="min-w-0">
+                  <dt className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
+                    {field.label}
+                  </dt>
+                  <dd className="text-sm">
+                    <ScalarValue value={row[field.key]} type={field.type} />
+                  </dd>
+                  {follow && !isEmpty(followVal) && (
+                    <dd className="mt-1.5 text-sm text-slate-600 whitespace-pre-wrap border-l-2 border-slate-200 pl-2.5">
+                      {String(followVal)}
+                    </dd>
+                  )}
+                </div>
+              )
+            })}
           </dl>
         )}
 
-        {wide.length > 0 && (
-          <div className="space-y-5">
-            {wide.map((f) => (
-              <div key={f.key}>
-                <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">
-                  {f.label}
+        {/* Checklist grids */}
+        {grids.map(({ field }) => (
+          <div key={field.key}>
+            <SectionLabel>{field.label}</SectionLabel>
+            <Checklist value={row[field.key]} />
+          </div>
+        ))}
+
+        {/* Array fields (chips) */}
+        {arrays.map(({ field }) => (
+          <div key={field.key}>
+            <SectionLabel>{field.label}</SectionLabel>
+            <Chips value={row[field.key]} />
+          </div>
+        ))}
+
+        {/* Attachments */}
+        {files.length > 0 && (
+          <div>
+            <SectionLabel>Attachments</SectionLabel>
+            <div className="space-y-3">
+              {files.map(({ field }) => (
+                <div key={field.key}>
+                  <div className="text-xs font-medium text-slate-500 mb-1.5">
+                    {field.label}
+                  </div>
+                  <FileLinks
+                    value={row[field.key]}
+                    multiple={field.type === 'files'}
+                  />
                 </div>
-                {renderValue(f, row[f.key])}
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         )}
+
+        {/* Free-text notes */}
+        {notes.map(({ field }) => {
+          const v = row[field.key]
+          if (isEmpty(v)) return null
+          return (
+            <div key={field.key}>
+              <SectionLabel>{field.label}</SectionLabel>
+              <div className="text-sm text-slate-700 whitespace-pre-wrap leading-relaxed bg-slate-50 rounded-xl p-4 border border-slate-100">
+                {String(v)}
+              </div>
+            </div>
+          )
+        })}
       </div>
     </div>
   )
