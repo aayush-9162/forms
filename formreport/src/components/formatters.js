@@ -31,17 +31,21 @@ export function formatMoney(v) {
 
 export function formatDate(v) {
   if (!v) return '—'
-  try {
-    const d = new Date(v)
-    if (Number.isNaN(d.getTime())) return String(v)
-    return d.toLocaleDateString(undefined, {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    })
-  } catch {
-    return String(v)
-  }
+  const s = String(v)
+  // A calendar date carries no time zone. JS parses 'YYYY-MM-DD' as UTC
+  // midnight, which renders as the PREVIOUS day in zones behind UTC (e.g. US
+  // Eastern), so build the date from its parts as a local date instead. This
+  // matches the leading date of both '2026-09-11' and '2026-09-11 18:50:00'.
+  const m = s.match(/^(\d{4})-(\d{2})-(\d{2})/)
+  const d = m
+    ? new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]))
+    : new Date(v)
+  if (Number.isNaN(d.getTime())) return s
+  return d.toLocaleDateString(undefined, {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  })
 }
 
 export function formatDateTime(v) {
