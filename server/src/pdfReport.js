@@ -12,6 +12,22 @@ function fmtPlain(v) {
   return String(v)
 }
 
+// A calendar date carries no time zone. Build it from its parts as a local
+// date so it never shifts a day — `new Date('2026-09-11')` parses as UTC
+// midnight, which renders as the previous day on servers behind UTC (US).
+function fmtReportDate(v) {
+  if (v === null || v === undefined || v === '') return '-'
+  const m = String(v).match(/^(\d{4})-(\d{2})-(\d{2})/)
+  if (!m) return String(v)
+  const d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]))
+  if (Number.isNaN(d.getTime())) return String(v)
+  return d.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  })
+}
+
 export function generateCashBatchPdf({
   title,
   submitter,
@@ -72,7 +88,11 @@ export function generateCashBatchPdf({
       doc
         .fillColor('#475569')
         .fontSize(10)
-        .text(`Report date: ${values.date}`, startX + 14, cardY + 43)
+        .text(
+          `Report date: ${fmtReportDate(values.date)}`,
+          startX + 14,
+          cardY + 43
+        )
     }
     doc.y = cardY + 72
     doc.fillColor('#000')
