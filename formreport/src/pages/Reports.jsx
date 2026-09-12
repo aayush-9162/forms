@@ -65,7 +65,7 @@ function Reports() {
   const [rows, setRows] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [selectedDate, setSelectedDate] = useState(yesterdayYMD)
+  const [selectedDate, setSelectedDate] = useState(todayYMD)
   const [search, setSearch] = useState('')
   const [lastUpdated, setLastUpdated] = useState(null)
 
