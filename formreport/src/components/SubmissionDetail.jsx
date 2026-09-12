@@ -62,7 +62,7 @@ function ScalarValue({ value, type }) {
     case 'int':
       return (
         <span className="font-semibold text-slate-900">
-          {Number(value).toLocaleString()}
+          {Number(value).toLocaleString('en-US')}
         </span>
       )
     case 'date':

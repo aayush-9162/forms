@@ -15,7 +15,7 @@ function Sidebar({ selectedFormKey, onSelect, counts }) {
           Total submissions
         </div>
         <div className="text-3xl font-bold bg-gradient-to-r from-indigo-600 via-violet-600 to-fuchsia-600 bg-clip-text text-transparent">
-          {totalCount.toLocaleString()}
+          {totalCount.toLocaleString('en-US')}
         </div>
       </div>
       <div className="p-3 space-y-5">

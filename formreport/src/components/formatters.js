@@ -5,7 +5,7 @@ export function formatValue(value, type) {
     case 'money':
       return formatMoney(value)
     case 'int':
-      return Number(value).toLocaleString()
+      return Number(value).toLocaleString('en-US')
     case 'date':
       return formatDate(value)
     case 'datetime':
@@ -41,7 +41,7 @@ export function formatDate(v) {
     ? new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]))
     : new Date(v)
   if (Number.isNaN(d.getTime())) return s
-  return d.toLocaleDateString(undefined, {
+  return d.toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
@@ -53,7 +53,7 @@ export function formatDateTime(v) {
   try {
     const d = new Date(v)
     if (Number.isNaN(d.getTime())) return String(v)
-    return d.toLocaleString(undefined, {
+    return d.toLocaleString('en-US', {
       year: 'numeric',
       month: 'short',
       day: 'numeric',

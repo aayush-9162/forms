@@ -37,7 +37,7 @@ function dateFieldFor(form) {
 }
 function prettyDate(ymd) {
   const [y, m, d] = ymd.split('-').map(Number)
-  return new Date(y, m - 1, d).toLocaleDateString(undefined, {
+  return new Date(y, m - 1, d).toLocaleDateString('en-US', {
     weekday: 'long',
     month: 'long',
     day: 'numeric',
@@ -254,7 +254,7 @@ function Reports() {
                   </span>
                   {lastUpdated && (
                     <span className="text-xs text-slate-300 hidden lg:inline">
-                      · updated {lastUpdated.toLocaleTimeString()}
+                      · updated {lastUpdated.toLocaleTimeString('en-US')}
                     </span>
                   )}
                 </div>

@@ -76,7 +76,9 @@ export async function afterSubmit({ formKey, insertId, user, values }) {
       const pdf = await generateCashBatchPdf({
         title: cashCfg.title,
         submitter: { name: user.name, email: user.email },
-        submittedAt: new Date().toLocaleString(),
+        submittedAt: new Date().toLocaleString('en-US', {
+          timeZone: 'America/New_York',
+        }),
         values,
       })
       const filename = buildBatchReportFilename(
