@@ -318,7 +318,7 @@ function WarehouseOpeningChecklist() {
         label="Person"
         required
         name="person"
-        options={['Chris Metlab', 'Justin']}
+        options={['Chris Metcalf', 'Justin']}
         value={person}
         onChange={setPerson}
         allowOther

@@ -162,7 +162,7 @@ function WarehouseClosingChecklist() {
           label="Name"
           required
           name="name"
-          options={['Chris Metlab', 'Justin']}
+          options={['Chris Metcalf', 'Justin']}
           value={name}
           onChange={setName}
           allowOther
