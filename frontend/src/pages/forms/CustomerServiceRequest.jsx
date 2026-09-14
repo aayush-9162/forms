@@ -10,16 +10,29 @@ import { todayIso } from '../../lib/dates.js'
 import { MAX_FILE_MB, MAX_FILE_SIZE } from '../../lib/limits.js'
 
 const FORM_KEY = 'customer-service-request'
+
+const CONTACT_CUSTOMER = 'CONTACT CUSTOMER'
 const DAMAGE_ON_FLOOR = 'DAMAGE ON FLOOR'
+const ARE_YOU_AWARE = 'ARE YOU AWARE'
+const FOLLOW_UP = 'FOLLOW UP'
+const REQUEST_CREDIT = 'Request Credit'
+const GENERAL_NOTICE = 'General Notice'
 
 const NOTICE_TYPES = [
-  'CONTACT CUSTOMER',
+  CONTACT_CUSTOMER,
   DAMAGE_ON_FLOOR,
-  'ARE YOU AWARE',
-  'FOLLOW UP',
-  'Request Credit',
-  'General Notice',
+  ARE_YOU_AWARE,
+  FOLLOW_UP,
+  REQUEST_CREDIT,
+  GENERAL_NOTICE,
 ]
+
+// Notice types that collect a customer contact + a problem description.
+const CONTACT_TYPES = [CONTACT_CUSTOMER, REQUEST_CREDIT]
+const MAX_PHOTOS = 10
+
+const fileInputClass =
+  'block w-full text-sm text-slate-600 file:mr-3 file:py-2.5 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-gradient-to-r file:from-indigo-50 file:to-violet-50 file:text-indigo-700 hover:file:from-indigo-100 hover:file:to-violet-100 cursor-pointer'
 
 function CustomerServiceRequest() {
   const { user } = useAuth()
@@ -27,37 +40,58 @@ function CustomerServiceRequest() {
   const [date, setDate] = useState(todayIso)
   const [yourName, setYourName] = useDraftState(`${FORM_KEY}.yourName`, user?.name || '')
   const [noticeType, setNoticeType] = useDraftState(`${FORM_KEY}.noticeType`, '')
+
+  // Contact-style fields (CONTACT CUSTOMER / Request Credit)
+  const [customerName, setCustomerName] = useDraftState(`${FORM_KEY}.customerName`, '')
+  const [phone, setPhone] = useDraftState(`${FORM_KEY}.phone`, '')
+  // Damage-style fields (DAMAGE ON FLOOR)
+  const [itemId, setItemId] = useDraftState(`${FORM_KEY}.itemId`, '')
+  const [barCode, setBarCode] = useDraftState(`${FORM_KEY}.barCode`, '')
+  const [location, setLocation] = useDraftState(`${FORM_KEY}.location`, '')
+  // Shared by contact + damage
+  const [descriptionOfProblem, setDescriptionOfProblem] = useDraftState(
+    `${FORM_KEY}.descriptionOfProblem`,
+    ''
+  )
+  // Note-style fields (ARE YOU AWARE / FOLLOW UP / General Notice)
   const [note, setNote] = useDraftState(`${FORM_KEY}.note`, '')
-  // Damage image — Blobs can't be persisted via useDraftState.
-  const [damageImage, setDamageImage] = useState(null)
-  const [damageImageError, setDamageImageError] = useState('')
+  // Damage photos — Blobs can't be persisted via useDraftState.
+  const [photos, setPhotos] = useState([])
+  const [photoError, setPhotoError] = useState('')
+
   const { submit, submitting, submitted, queued, error, reset } =
     useSubmitForm(FORM_KEY)
 
-  const isDamageOnFloor = noticeType === DAMAGE_ON_FLOOR
+  const isContact = CONTACT_TYPES.includes(noticeType)
+  const isDamage = noticeType === DAMAGE_ON_FLOOR
+  const isNote = Boolean(noticeType) && !isContact && !isDamage
 
   const handleNoticeTypeChange = (val) => {
     setNoticeType(val)
-    // Drop the file if user switched to a different notice type.
     if (val !== DAMAGE_ON_FLOOR) {
-      setDamageImage(null)
-      setDamageImageError('')
+      setPhotos([])
+      setPhotoError('')
     }
   }
 
-  const handleDamageFile = (e) => {
-    const file = e.target.files?.[0]
-    if (!file) {
-      setDamageImage(null)
-      setDamageImageError('')
+  const handlePhotos = (e) => {
+    const files = Array.from(e.target.files || [])
+    if (!files.length) {
+      setPhotos([])
+      setPhotoError('')
       return
     }
-    if (file.size > MAX_FILE_SIZE) {
-      setDamageImageError(`"${file.name}" exceeds the ${MAX_FILE_MB} MB limit.`)
+    if (files.length > MAX_PHOTOS) {
+      setPhotoError(`Please select up to ${MAX_PHOTOS} files.`)
       return
     }
-    setDamageImageError('')
-    setDamageImage(file)
+    const tooBig = files.find((f) => f.size > MAX_FILE_SIZE)
+    if (tooBig) {
+      setPhotoError(`"${tooBig.name}" exceeds the ${MAX_FILE_MB} MB limit.`)
+      return
+    }
+    setPhotoError('')
+    setPhotos(files)
   }
 
   const handleSubmit = (e) => {
@@ -67,10 +101,15 @@ function CustomerServiceRequest() {
         date,
         your_name: yourName,
         notice_type: noticeType,
-        note,
+        customer_name: isContact ? customerName : '',
+        phone: isContact ? phone : '',
+        item_id: isDamage ? itemId : '',
+        bar_code: isDamage ? barCode : '',
+        location: isDamage ? location : '',
+        description_of_problem: isContact || isDamage ? descriptionOfProblem : '',
+        note: isNote ? note : '',
       },
-      // Only attach the image when DAMAGE ON FLOOR is selected.
-      files: isDamageOnFloor ? { damage_image: damageImage } : null,
+      files: isDamage && photos.length ? { damage_image: photos } : null,
     })
   }
 
@@ -78,9 +117,15 @@ function CustomerServiceRequest() {
     setDate(todayIso())
     setYourName(user?.name || '')
     setNoticeType('')
+    setCustomerName('')
+    setPhone('')
+    setItemId('')
+    setBarCode('')
+    setLocation('')
+    setDescriptionOfProblem('')
     setNote('')
-    setDamageImage(null)
-    setDamageImageError('')
+    setPhotos([])
+    setPhotoError('')
     reset()
   }
 
@@ -134,41 +179,126 @@ function CustomerServiceRequest() {
         onChange={handleNoticeTypeChange}
       />
 
-      {isDamageOnFloor && (
-        <FormField
-          label="Upload damage picture"
-          required
-          hint={`Max ${MAX_FILE_MB} MB.`}
-        >
-          <input
-            type="file"
-            accept="image/*,.pdf"
-            required
-            onChange={handleDamageFile}
-            className="block w-full text-sm text-slate-600 file:mr-3 file:py-2.5 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-gradient-to-r file:from-indigo-50 file:to-violet-50 file:text-indigo-700 hover:file:from-indigo-100 hover:file:to-violet-100 cursor-pointer"
-          />
-          {damageImageError && (
-            <p className="text-xs text-rose-600 mt-1.5">{damageImageError}</p>
-          )}
-          {damageImage && (
-            <div className="mt-3 flex items-center gap-2 text-sm text-slate-700 bg-slate-50 px-3 py-2 rounded-lg">
-              <span className="flex-1 truncate">{damageImage.name}</span>
-              <span className="text-xs text-slate-500">
-                {(damageImage.size / 1024).toFixed(1)} KB
-              </span>
-            </div>
-          )}
-        </FormField>
+      {/* CONTACT CUSTOMER / Request Credit */}
+      {isContact && (
+        <>
+          <FormRow>
+            <FormField label="Customer Name" required>
+              <input
+                type="text"
+                required
+                value={customerName}
+                onChange={(e) => setCustomerName(e.target.value)}
+                className={inputClass}
+              />
+            </FormField>
+            <FormField label="Phone #" required>
+              <input
+                type="tel"
+                required
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                className={inputClass}
+              />
+            </FormField>
+          </FormRow>
+          <FormField label="Description Of Problem" required>
+            <textarea
+              rows="4"
+              required
+              value={descriptionOfProblem}
+              onChange={(e) => setDescriptionOfProblem(e.target.value)}
+              className={inputClass}
+            />
+          </FormField>
+        </>
       )}
 
-      <FormField label="Note">
-        <textarea
-          rows="4"
-          value={note}
-          onChange={(e) => setNote(e.target.value)}
-          className={inputClass}
-        />
-      </FormField>
+      {/* DAMAGE ON FLOOR */}
+      {isDamage && (
+        <>
+          <FormRow>
+            <FormField label="Item ID" required>
+              <input
+                type="text"
+                required
+                value={itemId}
+                onChange={(e) => setItemId(e.target.value)}
+                className={inputClass}
+              />
+            </FormField>
+            <FormField label="Bar Code #" required>
+              <input
+                type="text"
+                required
+                value={barCode}
+                onChange={(e) => setBarCode(e.target.value)}
+                className={inputClass}
+              />
+            </FormField>
+          </FormRow>
+          <FormField label="Location" required>
+            <input
+              type="text"
+              required
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
+              className={inputClass}
+            />
+          </FormField>
+          <FormField label="Description Of Problem" required>
+            <textarea
+              rows="4"
+              required
+              value={descriptionOfProblem}
+              onChange={(e) => setDescriptionOfProblem(e.target.value)}
+              className={inputClass}
+            />
+          </FormField>
+          <FormField
+            label="Photo"
+            hint={`Upload up to ${MAX_PHOTOS} supported files. Max ${MAX_FILE_MB} MB per file.`}
+          >
+            <input
+              type="file"
+              multiple
+              accept="image/*,.pdf"
+              onChange={handlePhotos}
+              className={fileInputClass}
+            />
+            {photoError && (
+              <p className="text-xs text-rose-600 mt-1.5">{photoError}</p>
+            )}
+            {photos.length > 0 && (
+              <div className="mt-3 space-y-1.5">
+                {photos.map((f, i) => (
+                  <div
+                    key={i}
+                    className="flex items-center gap-2 text-sm text-slate-700 bg-slate-50 px-3 py-2 rounded-lg"
+                  >
+                    <span className="flex-1 truncate">{f.name}</span>
+                    <span className="text-xs text-slate-500">
+                      {(f.size / 1024).toFixed(1)} KB
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </FormField>
+        </>
+      )}
+
+      {/* ARE YOU AWARE / FOLLOW UP / General Notice */}
+      {isNote && (
+        <FormField label="Note">
+          <textarea
+            rows="4"
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            className={inputClass}
+          />
+        </FormField>
+      )}
     </FormShell>
   )
 }

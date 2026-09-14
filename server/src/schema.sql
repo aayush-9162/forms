@@ -331,6 +331,12 @@ CREATE TABLE IF NOT EXISTS customer_service_request (
   date DATE,
   your_name VARCHAR(255),
   notice_type VARCHAR(100),
+  customer_name VARCHAR(255),
+  phone VARCHAR(50),
+  item_id VARCHAR(100),
+  bar_code VARCHAR(100),
+  location VARCHAR(255),
+  description_of_problem TEXT,
   note TEXT,
   damage_image JSON
 );

@@ -311,12 +311,23 @@ export const FORMS = {
   },
   'customer-service-request': {
     table: 'customer_service_request',
-    fields: ['date', 'your_name', 'notice_type', 'note'],
+    fields: [
+      'date',
+      'your_name',
+      'notice_type',
+      'customer_name',
+      'phone',
+      'item_id',
+      'bar_code',
+      'location',
+      'description_of_problem',
+      'note',
+    ],
     files: [
       {
         field: 'damage_image',
         column: 'damage_image',
-        multiple: false,
+        multiple: true,
         filenamePrefix: 'DamageOnFloor',
       },
     ],
