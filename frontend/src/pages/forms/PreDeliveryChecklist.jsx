@@ -46,8 +46,9 @@ function PreDeliveryChecklist() {
     ''
   )
   // File uploads can't be persisted — Blobs aren't JSON-serializable.
-  const [exceptionPics, setExceptionPics] = useState([null, null, null, null])
-  const [fileErrors, setFileErrors] = useState(['', '', '', ''])
+  const [exceptionPics, setExceptionPics] = useState([])
+  const [exceptionError, setExceptionError] = useState('')
+  const MAX_EXCEPTION_PICS = 10
   const [railsSlatsImage, setRailsSlatsImage] = useState(null)
   const [railsSlatsImageError, setRailsSlatsImageError] = useState('')
   const { submit, submitting, submitted, queued, error, reset } =
@@ -109,21 +110,38 @@ function PreDeliveryChecklist() {
   const bedOnTruckIsYes = bedOnTruck === 'Yes'
   const railsSlatsIsYes = bedOnTruckIsYes && railsSlatsChecked === 'Yes'
 
-  const handleFileChange = (idx) => (e) => {
-    const file = e.target.files?.[0]
-    const newPics = [...exceptionPics]
-    const newErrors = [...fileErrors]
-    if (!file) {
-      newPics[idx] = null
-      newErrors[idx] = ''
-    } else if (file.size > MAX_FILE_SIZE) {
-      newErrors[idx] = `"${file.name}" exceeds the ${MAX_FILE_MB} MB limit.`
-    } else {
-      newPics[idx] = file
-      newErrors[idx] = ''
+  const handleExceptionPics = (e) => {
+    const incoming = Array.from(e.target.files || [])
+    // Reset so re-picking the same file (or re-opening) still fires.
+    e.target.value = ''
+    if (!incoming.length) return
+    const tooBig = incoming.find((f) => f.size > MAX_FILE_SIZE)
+    if (tooBig) {
+      setExceptionError(`"${tooBig.name}" exceeds the ${MAX_FILE_MB} MB limit.`)
+      return
     }
-    setExceptionPics(newPics)
-    setFileErrors(newErrors)
+    // Append to the existing selection, skipping duplicates (name + size).
+    const seen = new Set(exceptionPics.map((f) => `${f.name}:${f.size}`))
+    const merged = [...exceptionPics]
+    for (const f of incoming) {
+      const key = `${f.name}:${f.size}`
+      if (!seen.has(key)) {
+        seen.add(key)
+        merged.push(f)
+      }
+    }
+    if (merged.length > MAX_EXCEPTION_PICS) {
+      setExceptionPics(merged.slice(0, MAX_EXCEPTION_PICS))
+      setExceptionError(`You can attach up to ${MAX_EXCEPTION_PICS} files.`)
+    } else {
+      setExceptionPics(merged)
+      setExceptionError('')
+    }
+  }
+
+  const removeExceptionPic = (idx) => {
+    setExceptionPics((prev) => prev.filter((_, i) => i !== idx))
+    setExceptionError('')
   }
 
   const handleSubmit = (e) => {
@@ -147,7 +165,7 @@ function PreDeliveryChecklist() {
         rails_slats_checked: bedOnTruckIsYes ? railsSlatsChecked : '',
       },
       files: {
-        exception_pics: exceptionPics.filter(Boolean),
+        exception_pics: exceptionPics,
         ...(railsSlatsIsYes
           ? { rails_slats_image: railsSlatsImage }
           : {}),
@@ -165,8 +183,8 @@ function PreDeliveryChecklist() {
     setIfNoExplain('')
     setAccessoriesExceptions('')
     setDamages('')
-    setExceptionPics([null, null, null, null])
-    setFileErrors(['', '', '', ''])
+    setExceptionPics([])
+    setExceptionError('')
     setDeliveryManager('')
     setWarehouseManager('')
     setPowerSupplyOnItem('')
@@ -178,40 +196,46 @@ function PreDeliveryChecklist() {
     reset()
   }
 
-  const renderFilePicker = (idx) => (
+  const exceptionPicker = (
     <FormField
-      key={idx}
-      label={`Picture of Exception ${idx + 1}`}
-      hint="Upload 1 supported file. Max 10 MB."
+      label="Pictures of Exceptions"
+      hint={`Upload up to ${MAX_EXCEPTION_PICS} supported files. Max ${MAX_FILE_MB} MB per file.`}
     >
       <input
         type="file"
+        multiple
         accept="image/*,.pdf"
-        onChange={handleFileChange(idx)}
+        onChange={handleExceptionPics}
         className="block w-full text-sm text-slate-600 file:mr-3 file:py-2.5 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-gradient-to-r file:from-indigo-50 file:to-violet-50 file:text-indigo-700 hover:file:from-indigo-100 hover:file:to-violet-100 cursor-pointer"
       />
-      {fileErrors[idx] && (
-        <p className="text-xs text-rose-600 mt-1.5">{fileErrors[idx]}</p>
+      {exceptionError && (
+        <p className="text-xs text-rose-600 mt-1.5">{exceptionError}</p>
       )}
-      {exceptionPics[idx] && (
-        <div className="mt-3 flex items-center gap-2 text-sm text-slate-700 bg-slate-50 px-3 py-2 rounded-lg">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            className="h-4 w-4 text-indigo-500"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z" />
-            <polyline points="13 2 13 9 20 9" />
-          </svg>
-          <span className="flex-1 truncate">{exceptionPics[idx].name}</span>
-          <span className="text-xs text-slate-500">
-            {(exceptionPics[idx].size / 1024).toFixed(1)} KB
-          </span>
+      {exceptionPics.length > 0 && (
+        <div className="mt-3 space-y-1.5">
+          <div className="text-xs text-slate-500">
+            {exceptionPics.length} of {MAX_EXCEPTION_PICS} file
+            {exceptionPics.length === 1 ? '' : 's'} selected
+          </div>
+          {exceptionPics.map((f, i) => (
+            <div
+              key={`${f.name}:${f.size}:${i}`}
+              className="flex items-center gap-2 text-sm text-slate-700 bg-slate-50 px-3 py-2 rounded-lg"
+            >
+              <span className="flex-1 truncate">{f.name}</span>
+              <span className="text-xs text-slate-500">
+                {(f.size / 1024).toFixed(1)} KB
+              </span>
+              <button
+                type="button"
+                onClick={() => removeExceptionPic(i)}
+                className="text-slate-400 hover:text-rose-600 text-lg leading-none px-1"
+                aria-label={`Remove ${f.name}`}
+              >
+                ×
+              </button>
+            </div>
+          ))}
         </div>
       )}
     </FormField>
@@ -340,14 +364,7 @@ function PreDeliveryChecklist() {
         />
       </FormField>
 
-      <FormRow>
-        {renderFilePicker(0)}
-        {renderFilePicker(1)}
-      </FormRow>
-      <FormRow>
-        {renderFilePicker(2)}
-        {renderFilePicker(3)}
-      </FormRow>
+      {exceptionPicker}
 
       <RadioQuestion
         label="Is there any power supply on item?"
