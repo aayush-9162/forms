@@ -75,23 +75,41 @@ function CustomerServiceRequest() {
   }
 
   const handlePhotos = (e) => {
-    const files = Array.from(e.target.files || [])
-    if (!files.length) {
-      setPhotos([])
-      setPhotoError('')
-      return
-    }
-    if (files.length > MAX_PHOTOS) {
-      setPhotoError(`Please select up to ${MAX_PHOTOS} files.`)
-      return
-    }
-    const tooBig = files.find((f) => f.size > MAX_FILE_SIZE)
+    const incoming = Array.from(e.target.files || [])
+    // Reset the input so picking the same file again (or re-opening) still fires.
+    e.target.value = ''
+    if (!incoming.length) return
+
+    const tooBig = incoming.find((f) => f.size > MAX_FILE_SIZE)
     if (tooBig) {
       setPhotoError(`"${tooBig.name}" exceeds the ${MAX_FILE_MB} MB limit.`)
       return
     }
+
+    // Append to the existing selection instead of replacing it, skipping
+    // duplicates (same name + size).
+    const seen = new Set(photos.map((f) => `${f.name}:${f.size}`))
+    const merged = [...photos]
+    for (const f of incoming) {
+      const key = `${f.name}:${f.size}`
+      if (!seen.has(key)) {
+        seen.add(key)
+        merged.push(f)
+      }
+    }
+
+    if (merged.length > MAX_PHOTOS) {
+      setPhotos(merged.slice(0, MAX_PHOTOS))
+      setPhotoError(`You can attach up to ${MAX_PHOTOS} files.`)
+    } else {
+      setPhotos(merged)
+      setPhotoError('')
+    }
+  }
+
+  const removePhoto = (idx) => {
+    setPhotos((prev) => prev.filter((_, i) => i !== idx))
     setPhotoError('')
-    setPhotos(files)
   }
 
   const handleSubmit = (e) => {
@@ -271,15 +289,27 @@ function CustomerServiceRequest() {
             )}
             {photos.length > 0 && (
               <div className="mt-3 space-y-1.5">
+                <div className="text-xs text-slate-500">
+                  {photos.length} of {MAX_PHOTOS} file
+                  {photos.length === 1 ? '' : 's'} selected
+                </div>
                 {photos.map((f, i) => (
                   <div
-                    key={i}
+                    key={`${f.name}:${f.size}:${i}`}
                     className="flex items-center gap-2 text-sm text-slate-700 bg-slate-50 px-3 py-2 rounded-lg"
                   >
                     <span className="flex-1 truncate">{f.name}</span>
                     <span className="text-xs text-slate-500">
                       {(f.size / 1024).toFixed(1)} KB
                     </span>
+                    <button
+                      type="button"
+                      onClick={() => removePhoto(i)}
+                      className="text-slate-400 hover:text-rose-600 text-lg leading-none px-1"
+                      aria-label={`Remove ${f.name}`}
+                    >
+                      ×
+                    </button>
                   </div>
                 ))}
               </div>
